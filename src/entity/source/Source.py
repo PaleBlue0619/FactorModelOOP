@@ -5,32 +5,65 @@ import dolphindb as ddb
 class Source:
     def __init__(self, session: ddb.session):
         self.session: ddb.session = session
-        self.X: pd.DataFrame = pd.DataFrame()
-        self.y: pd.DataFrame = pd.DataFrame()
+        self.data: pd.DataFrame = pd.DataFrame()
+        self.dbName: str = ""
+        self.tbName: str = ""
         self.dateCol: str = ""
         self.symbolCol: str = ""
-        self.factorDB: str = ""
-        self.factorTB: str = ""
-        self.labelDB: str = ""
-        self.labelTB: str = ""
+        self.indicatorCol: str = ""
+        self.valueCol: str = ""
 
     def init(self, Dict: Dict[str, str]):
         self.dateCol = Dict["dateCol"]
         self.symbolCol = Dict["symbolCol"]
-        self.factorDB = Dict["factorDB"]
-        self.factorTB = Dict["factorTB"]
-        self.labelDB = Dict["labelDB"]
-        self.labelTB = Dict["labelTB"]
+        self.dbName = Dict["dbName"]
+        self.tbName = Dict["tbName"]
+        self.dateCol = Dict["dateCol"]
+        self.indicatorCol = Dict["indicatorCol"]
+        self.symbolCol = Dict["symbolCol"]
+        self.valueCol = Dict["valueCol"]
 
-    def get_feature(self, startDate: pd.Timestamp, endDate: pd.Timestamp, symbolList: List[str])\
-            -> pd.DataFrame:
-        data = self.session.run(f"""
-            select 
-        """)
-        return data
+    def get_data(self, startDate: pd.Timestamp = None, endDate: pd.Timestamp = None,
+                 symbolList: List[str] = None, indicatorList: List[str] = None
+                 ) -> pd.DataFrame:
+        if not startDate:
+            startDate = pd.Timestamp("20200101")
+        if not endDate:
+            endDate = pd.Timestamp.now()
+        startDate = pd.Timestamp(startDate).strftime("%Y.%m.%d")
+        endDate = pd.Timestamp(endDate).strftime("%Y.%m.%d")
+        if not symbolList:
+            symbolList = []
+        self.session.upload({"symbolList": symbolList})
+        if not indicatorList:
+            indicatorList = []
+        self.session.upload({"indicatorList": indicatorList})
 
-    def get_label(self, startDate: pd.Timestamp, endDate: pd.Timestamp, symbolList: List[str])\
-            -> pd.DataFrame:
         data = self.session.run(f"""
+            startDate = {startDate}
+            endDate = {endDate}
+            symbolList = {self.symbolList}
+            indicatorList = {self.indicatorList}
+            if (size(symbolList)==0 and size(indicatorList)==0){{
+                pt = select value from loadTable("{self.dbName}","{self.tbName}") 
+                where {self.dateCol} between startDate and endDate
+                pivot by cont, tradeDate, label
+            }}
+            else if(size(symbolList)>0 and size(indicatorList)==0){{
+                pt = select value from loadTable("{self.dbName}","{self.tbName}") 
+                where ({self.dateCol} between startDate and endDate) and {self.symbolCol} in symbolList
+                pivot by cont, tradeDate, label
+            }}
+            else if(size(symbolList)==0 and size(indicatorList)>0){{
+                pt = select value from loadTable("{self.dbName}","{self.tbName}") 
+                where ({self.dateCol} between startDate and endDate) and {self.indicatorCol} in indicatorList
+                pivot by cont, tradeDate, label
+            }}
+            else{{
+                pt = select value from loadTable("{self.dbName}","{self.tbName}") 
+                where ({self.dateCol} between startDate and endDate) and ({self.symbolCol} in symbolList) and ({self.indicatorCol} in indicatorList) 
+                pivot by cont, tradeDate, label
+            }}
+            pt
         """)
         return data

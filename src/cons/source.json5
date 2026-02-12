@@ -1,0 +1,18 @@
+{
+  "factor": {
+    "dbName": "dfs://dayFactorFut",
+    "tbName": "pt",
+    "dateCol": "tradeDate",
+    "symbolCol": "symbol",
+    "indicatorCol": "factor",
+    "valueCol": "value"
+  },
+  "label": {
+    "dbName": "dfs://dayLabel",
+    "tbName": "futureLabel",
+    "dateCol": "tradeDate",
+    "symbolCol": "cont",
+    "indicatorCol": "label",
+    "valueCol": "value"
+  }
+}
