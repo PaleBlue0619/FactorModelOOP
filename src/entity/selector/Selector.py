@@ -2,17 +2,12 @@ import pandas as pd
 import numpy as np
 import dolphindb as ddb
 from typing import Dict, List
-# from src.entity.selector import TimeSelector, DataSelector
 
 class Selector: # (TimeSelector, DataSelector):
     """训练数据: 因子数据(X) & 标签(Y)选择器
     选择器应同时选择X(因子)与y(标签), 通过select函数获取完整用于训练的面板数据
     时间维度的选择器 -> 字典
     factor: 时间选择器-因子
-    {
-      "date1": [startDate, endDate],
-      "date2": [startDate, endDate]
-    }
     label: 时间选择器-标签
     {
       "date1": [startDate, endDate],

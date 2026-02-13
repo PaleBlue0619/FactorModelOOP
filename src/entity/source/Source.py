@@ -5,23 +5,12 @@ import dolphindb as ddb
 class Source:
     def __init__(self, session: ddb.session):
         self.session: ddb.session = session
-        self.data: pd.DataFrame = pd.DataFrame()
         self.dbName: str = ""
         self.tbName: str = ""
         self.dateCol: str = ""
         self.symbolCol: str = ""
         self.indicatorCol: str = ""
         self.valueCol: str = ""
-
-    def init(self, Dict: Dict[str, str]):
-        self.dateCol = Dict["dateCol"]
-        self.symbolCol = Dict["symbolCol"]
-        self.dbName = Dict["dbName"]
-        self.tbName = Dict["tbName"]
-        self.dateCol = Dict["dateCol"]
-        self.indicatorCol = Dict["indicatorCol"]
-        self.symbolCol = Dict["symbolCol"]
-        self.valueCol = Dict["valueCol"]
 
     def get_data(self, startDate: pd.Timestamp = None, endDate: pd.Timestamp = None,
                  symbolList: List[str] = None, indicatorList: List[str] = None

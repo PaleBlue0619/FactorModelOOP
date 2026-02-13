@@ -11,6 +11,7 @@
     "dbName": "dfs://dayLabel",
     "tbName": "futureLabel",
     "dateCol": "tradeDate",
+    "labelDateCol": "minDate",
     "symbolCol": "cont",
     "indicatorCol": "label",
     "valueCol": "value"
