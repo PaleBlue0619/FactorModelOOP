@@ -6,54 +6,39 @@ from typing import List, Dict
 class Source:
     def __init__(self, session: ddb.session):
         self.session: ddb.session = session
-        self.dbName: str = ""
-        self.tbName: str = ""
-        self.dateCol: str = ""
-        self.symbolCol: str = ""
-        self.indicatorCol: str = ""
-        self.valueCol: str = ""
+        self.factorDateCol: str = ""
+        self.labelDateCol: str = ""
+        self.labelDateCol1: str = ""  # minDate
+        self.factorSymbolCol: str = ""
+        self.labelSymbolCol: str = ""
+        self.factorDBName: str = ""
+        self.labelDBName: str = ""
+        self.factorTBName: str = ""
+        self.labelTBName: str = ""
+        self.factorIndicatorCol: str = ""
+        self.labelIndicatorCol: str = ""
+        self.factorSymbolCol: str = ""
+        self.labelSymbolCol: str = ""
+        self.factorValueCol: str = ""
+        self.labelValueCol: str = ""
+        self.dataDateCol: str = "tradeDate"
+        self.dataSymbolCol: str = "symbol"
+        self.factorAppender: ddb.TableAppender = None
 
-    def get_data(self, startDate: pd.Timestamp = None, endDate: pd.Timestamp = None,
-                 symbolList: List[str] = None, indicatorList: List[str] = None
-                 ) -> pd.DataFrame:
-        if not startDate:
-            startDate = pd.Timestamp("20200101")
-        if not endDate:
-            endDate = pd.Timestamp.now()
-        startDate = pd.Timestamp(startDate).strftime("%Y.%m.%d")
-        endDate = pd.Timestamp(endDate).strftime("%Y.%m.%d")
-        if not symbolList:
-            symbolList = []
-        self.session.upload({"symbolList": symbolList})
-        if not indicatorList:
-            indicatorList = []
-        self.session.upload({"indicatorList": indicatorList})
-
-        data = self.session.run(f"""
-            startDate = {startDate}
-            endDate = {endDate}
-            symbolList = {self.symbolList}
-            indicatorList = {self.indicatorList}
-            if (size(symbolList)==0 and size(indicatorList)==0){{
-                pt = select value from loadTable("{self.dbName}","{self.tbName}") 
-                where {self.dateCol} between startDate and endDate
-                pivot by cont, tradeDate, label
-            }}
-            else if(size(symbolList)>0 and size(indicatorList)==0){{
-                pt = select value from loadTable("{self.dbName}","{self.tbName}") 
-                where ({self.dateCol} between startDate and endDate) and {self.symbolCol} in symbolList
-                pivot by cont, tradeDate, label
-            }}
-            else if(size(symbolList)==0 and size(indicatorList)>0){{
-                pt = select value from loadTable("{self.dbName}","{self.tbName}") 
-                where ({self.dateCol} between startDate and endDate) and {self.indicatorCol} in indicatorList
-                pivot by cont, tradeDate, label
-            }}
-            else{{
-                pt = select value from loadTable("{self.dbName}","{self.tbName}") 
-                where ({self.dateCol} between startDate and endDate) and ({self.symbolCol} in symbolList) and ({self.indicatorCol} in indicatorList) 
-                pivot by cont, tradeDate, label
-            }}
-            pt
-        """)
-        return data
+    def init(self, factorDict: Dict[str, str], labelDict: Dict[str, str]):
+        self.factorDBName = factorDict["dbName"]
+        self.factorTBName = factorDict["tbName"]
+        self.factorDateCol = factorDict["dateCol"]
+        self.factorSymbolCol = factorDict["symbolCol"]
+        self.factorIndicatorCol = factorDict["indicatorCol"]
+        self.factorValueCol = factorDict["valueCol"]
+        self.labelDBName = labelDict["dbName"]
+        self.labelTBName = labelDict["tbName"]
+        self.labelDateCol = labelDict["dateCol"]
+        self.labelDateCol1 = labelDict["labelDateCol"]
+        self.labelSymbolCol = labelDict["symbolCol"]
+        self.labelIndicatorCol = labelDict["indicatorCol"]
+        self.labelValueCol = labelDict["valueCol"]
+        self.factorAppender = ddb.TableAppender(dbPath=self.factorDBName,
+                                                tableName=self.factorTBName,
+                                                ddbSession=self.session)

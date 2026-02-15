@@ -44,7 +44,7 @@ def generateTime(session: ddb.session, startDate: str, endDate: str,
 
 if __name__ == "__main__":
     timeDict = generateTime(ddb.session("localhost", 8848, "admin", "123456"),
-                            "2021-01-01", "2026-02-13",
+                            "2020-01-01", "2026-02-16",
                             callBackPeriod=5, windowSize=10)
     with open(r"D:\DolphinDB\Project\FactorModel_v1\src\cons\time.json5", "w", encoding="utf-8") as f:
         json5.dump(timeDict, f)

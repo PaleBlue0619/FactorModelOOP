@@ -2,6 +2,7 @@ import os, json, json5
 import tqdm
 import pandas as pd
 import dolphindb as ddb
+from src.callback import callBack
 from src.entity.source.DataSource import DataSource
 from src.entity.selector.Selector import Selector
 from typing import Dict, List
@@ -10,11 +11,12 @@ class FactorModel:
     def __init__(self, session: ddb.session,
                  factorDict:  Dict[str, str],
                  labelDict: Dict[str, str],
-                 timeDict: Dict[str, List[str]]):
+                 timeDict: Dict[str, List[str]],
+                 callBackFunc: callable):
         self.session = session
         self.factorDict = factorDict
         self.labelDict = labelDict
-        self.dataSource = DataSource(session)
+        self.dataSource = DataSource(session, callBackFunc=callBackFunc)
         self.dataSource.init(factorDict, labelDict)
         self.selector = Selector()
         self.selector.setTimeRule(timeDict)
@@ -34,17 +36,19 @@ class FactorModel:
         # 按照时间进行训练
         if startDate >= max(self.selector.timeDict.keys()):
             return  # 说明当前时间规则设计的不合理 -> 开始训练日期>所有设置的时间规则
-        self.selector.timeDict = {i: j for i, j in self.timeDict.items() if i >= startDate} # filter
+        self.selector.timeDict = {i: j for i, j in self.selector.timeDict.items() if i >= startDate} # filter
         self.timeDict = self.selector.timeDict.copy()
 
-        for date in tqdm.tqdm(self.timeDict.keys()):
+        for currentDate in tqdm.tqdm(self.timeDict.keys(), desc="training..."):
             currentStartDate, currentEndDate = self.selector.forward()
+            factorList = self.dataSource.getFactorList(labelName=labelName, currentDate=currentDate)
             data = self.dataSource.getData(
                 startDate=currentStartDate,
                 endDate=currentEndDate,
                 symbolList=None,
                 labelList=[self.labelName],
-                factorList=None)
+                factorList=factorList)
+            print(data)
 
 if __name__ == "__main__":
     with open(r".\cons\time.json5", "r", encoding="utf-8") as f:
@@ -56,5 +60,5 @@ if __name__ == "__main__":
     factorDict = sourceDict["factor"]
     labelDict = sourceDict["label"]
     session = ddb.session("localhost", 8848, "admin", "123456")
-    F = FactorModel(session, factorDict, labelDict)
-    print(F.dataSource.__dict__)
+    F = FactorModel(session, factorDict=factorDict, labelDict=labelDict, timeDict=timeDict, callBackFunc=callBack)
+    F.run(startDate="2020.01.01", labelName="ret5D")

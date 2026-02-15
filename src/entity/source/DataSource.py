@@ -8,44 +8,16 @@ from typing import List, Dict, Callable
 class DataSource(LabelSource):
     def __init__(self, session: ddb.session, callBackFunc: Callable):   # 回调函数 -> 入参: currentDate -> 自动返回所需的因子
         super().__init__(session)
-        self.factorDateCol: str = ""
-        self.labelDateCol: str = ""
-        self.labelDateCol1: str = ""    # minDate
-        self.factorSymbolCol: str = ""
-        self.labelSymbolCol: str = ""
-        self.factorDBName: str = ""
-        self.labelDBName: str = ""
-        self.factorTBName: str = ""
-        self.labelTBName: str = ""
-        self.factorIndicatorCol: str = ""
-        self.labelIndicatorCol: str = ""
-        self.factorSymbolCol: str = ""
-        self.labelSymbolCol: str = ""
-        self.factorValueCol: str = ""
-        self.labelValueCol: str = ""
-        self.dataDateCol: str = "tradeDate"
-        self.dataSymbolCol: str = "symbol"
-        self.factorAppender: ddb.TableAppender = ddb.TableAppender(dbPath=self.factorDBName,
-                                                                   tableName=self.factorTBName,
-                                                                   ddbSession=self.session)
         self.callBackFunc: Callable = callBackFunc
 
-    def init(self, factorDict: Dict[str, str], labelDict: Dict[str, str]):
-        self.factorDBName = factorDict["dbName"]
-        self.factorTBName = factorDict["tbName"]
-        self.factorDateCol = factorDict["dateCol"]
-        self.factorSymbolCol = factorDict["symbolCol"]
-        self.factorIndicatorCol = factorDict["indicatorCol"]
-        self.factorValueCol = factorDict["valueCol"]
-        self.labelDBName = labelDict["dbName"]
-        self.labelTBName = labelDict["tbName"]
-        self.labelDateCol = labelDict["dateCol"]
-        self.labelDateCol1 = labelDict["labelDateCol"]
-        self.labelSymbolCol = labelDict["symbolCol"]
-        self.labelIndicatorCol = labelDict["indicatorCol"]
-        self.labelValueCol = labelDict["valueCol"]
-
-    def getFactorList(self, currentDate: pd.Timestamp):
+    def getFactorList(self, labelName: str, currentDate: pd.Timestamp) -> List[str]:
+        """
+        获取当前日期+当前标签下选择的因子列表
+        :param labelName: 目标标签
+        :param currentDate: 当前日期
+        :return:
+        """
+        return self.callBackFunc(self, labelName, currentDate)
 
     def append(self, data: pd.DataFrame) -> None:
         """
@@ -63,25 +35,22 @@ class DataSource(LabelSource):
         """获取完整的数据集 -> startDate & endDate
         通过LabelSource进行获取
         """
-        [realStartDate, realEndDate] = self.getDateListFromLabel(startDate, endDate, "label")
+        # 目前只支持一个标签 -> TODO: 支持多个标签
+        [realStartDate, realEndDate] = self.getDateListFromLabel(startDate, endDate, labelList[0])
         realStartDate = pd.Timestamp(realStartDate).strftime("%Y.%m.%d")
         realEndDate = pd.Timestamp(realEndDate).strftime("%Y.%m.%d")
-        if not symbolList:
+        if symbolList is None:
             symbolList = []
         self.session.upload({"symbolList": symbolList})
-        if not labelList:
+        if labelList is None:
             labelList = []
         self.session.upload({"labelList": labelList})
-        if not factorList:
+        if factorList is None:
             factorList = []
         self.session.upload({"factorList": factorList})
         data = self.session.run(f"""
             startDate = {realStartDate}
-            endDate = {realEndDate}
-            symbolList = {self.symbolList}
-            factorList = {self.factorList}
-            labelList = {self.labelList}
-            
+            endDate = {realEndDate}            
             /* 标签内存表 */
             if (size(symbolList)==0 and size(labelList)==0){{
                 labelDF = select value from loadTable("{self.labelDBName}","{self.labelTBName}") 
