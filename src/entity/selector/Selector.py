@@ -3,7 +3,7 @@ import numpy as np
 import dolphindb as ddb
 from typing import Dict, List
 
-class Selector: # (TimeSelector, DataSelector):
+class Selector:
     """训练数据: 因子数据(X) & 标签(Y)选择器
     选择器应同时选择X(因子)与y(标签), 通过select函数获取完整用于训练的面板数据
     时间维度的选择器 -> 字典
@@ -20,29 +20,21 @@ class Selector: # (TimeSelector, DataSelector):
     def __init__(self):
         self.data: pd.DataFrame = None          # 基于固定SQL规则的数据清洗 -> 空间维度的Selector
         self.currentDate: pd.Timestamp = None   # 基于已有时间选择过去时间 -> 时间维度的Selector
-        self.session: ddb.session = None
         self.params: Dict[str, any] = {}        # 选择器超参数
-        self.symbolCol: str = ""
-        self.dateCol: str = ""
-        self.totalSql: str = ""
-
-    def setCurrentDate(self, date: pd.Timestamp):
-        self.currentDate = pd.Timestamp(date)
-
-    def setSession(self, session: ddb.session):
-        self.session = session
+        self.timeDict: Dict[pd.Timestamp, List[pd.Timestamp]] = {}
+        self.currentIdx: int = 0
 
     def setTimeRule(self, Dict: Dict[str, List[str]]):
         """设置时间规则"""
         timeDict = {}   # 转化为Dict[pd.Timestamp, List[pd.Timestamp]]
         for key, value in Dict.items():   # [startDate, endDate]
             timeDict[pd.Timestamp(key)] = [pd.Timestamp(value[0]), pd.Timestamp(value[1])]
+        self.timeDict = timeDict
 
-    def select(self) -> pd.DataFrame:
-        """根据currentDate进行选择"""
-        data = self.session.run(f"""
-            
-        """)
-        return data
-
+    def forward(self) -> [pd.Timestamp, pd.Timestamp]:
+        if self.currentIdx >= len(self.timeDict):
+            return None # 说明已经训练到头了
+        self.currentDate = list(self.timeDict.keys())[self.currentIdx]
+        self.currentIdx += 1
+        return self.timeDict[self.currentDate]
 

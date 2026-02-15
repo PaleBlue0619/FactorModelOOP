@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import dolphindb as ddb
+from typing import List, Dict
 
 class Source:
     def __init__(self, session: ddb.session):

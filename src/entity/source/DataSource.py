@@ -3,6 +3,7 @@ import pandas as pd
 import dolphindb as ddb
 from src.entity.source.Source import Source
 from src.entity.source.LabelSource import LabelSource
+from typing import List, Dict
 
 class DataSource(LabelSource):
     def __init__(self, session: ddb.session):
@@ -24,6 +25,9 @@ class DataSource(LabelSource):
         self.labelValueCol: str = ""
         self.dataDateCol: str = "tradeDate"
         self.dataSymbolCol: str = "symbol"
+        self.factorAppender: ddb.TableAppender = ddb.TableAppender(dbPath=self.factorDBName,
+                                                                   tableName=self.factorTBName,
+                                                                   ddbSession=self.session)
 
     def init(self, factorDict: Dict[str, str], labelDict: Dict[str, str]):
         self.factorDBName = factorDict["dbName"]
@@ -40,11 +44,19 @@ class DataSource(LabelSource):
         self.labelIndicatorCol = labelDict["indicatorCol"]
         self.labelValueCol = labelDict["valueCol"]
 
+    def append(self, data: pd.DataFrame) -> None:
+        """
+        向因子库写入因子
+        :return:
+        """
+        self.factorAppender.append(data)
+
     def getData(self, startDate: pd.Timestamp = None,
                 endDate: pd.Timestamp = None,
                 symbolList: List[str] = None,
                 labelList: List[str] = None,
-                factorList: List[str] = None) -> pd.DataFrame:
+                factorList: List[str] = None,
+               ) -> pd.DataFrame:
         """获取完整的数据集 -> startDate & endDate
         通过LabelSource进行获取
         """

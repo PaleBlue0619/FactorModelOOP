@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import dolphindb as ddb
 from src.entity.source.Source import Source
+from typing import List, Dict
 
 class LabelSource(Source):
     def __init__(self, session: ddb.session):
