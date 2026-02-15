@@ -1,13 +1,13 @@
 import json5
-import dolphindb as ddb # 交易日历
-import pandas as pd
-from typing import List, Dict
-
-import json5
 import dolphindb as ddb
 import pandas as pd
 from typing import List, Dict
 
+# 假设时间上的迭代规则为: {"2021.01.15":["2021.01.04", "2021.01.15"], "2021.01.22": ["2021.01.11","2021.01.22"]}
+# 那么FactorModel将解析行为为:
+# 1. 到2021.01.15这一天开始训练, 获取[2021.01.04~2021.01.15]期间的有效数据(防止未来标签泄露)
+# 2. 若hasNext(), 将训练出的模型应用于[2021.01.15, 2021.01.22)的标签数据
+# 3. 若!hasNext(), 将训练出的模型应用于[2021.01.15, now()]的标签数据
 
 def generateTime(session: ddb.session, startDate: str, endDate: str,
                  callBackPeriod: int = 5, windowSize: int = 10) \

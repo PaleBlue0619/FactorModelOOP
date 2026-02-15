@@ -19,7 +19,7 @@ class FactorModel:
         self.selector = Selector()
         self.selector.setTimeRule(timeDict)
         self.labelName: str = ""
-        self.timeDict = self.selector.timeDict.copy()
+        self.timeDict: Dict[pd.Timestamp, List[pd.Timestamp]] = {}
 
     def run(self, startDate: pd.Timestamp, labelName: str, nearMatching: bool = False):
         """
@@ -34,6 +34,8 @@ class FactorModel:
         # 按照时间进行训练
         if startDate >= max(self.selector.timeDict.keys()):
             return  # 说明当前时间规则设计的不合理 -> 开始训练日期>所有设置的时间规则
+        self.selector.timeDict = {i: j for i, j in self.timeDict.items() if i >= startDate} # filter
+        self.timeDict = self.selector.timeDict.copy()
 
         for date in tqdm.tqdm(self.timeDict.keys()):
             currentStartDate, currentEndDate = self.selector.forward()

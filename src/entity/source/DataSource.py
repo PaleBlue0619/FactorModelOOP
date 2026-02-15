@@ -3,10 +3,10 @@ import pandas as pd
 import dolphindb as ddb
 from src.entity.source.Source import Source
 from src.entity.source.LabelSource import LabelSource
-from typing import List, Dict
+from typing import List, Dict, Callable
 
 class DataSource(LabelSource):
-    def __init__(self, session: ddb.session):
+    def __init__(self, session: ddb.session, callBackFunc: Callable):   # 回调函数 -> 入参: currentDate -> 自动返回所需的因子
         super().__init__(session)
         self.factorDateCol: str = ""
         self.labelDateCol: str = ""
@@ -28,6 +28,7 @@ class DataSource(LabelSource):
         self.factorAppender: ddb.TableAppender = ddb.TableAppender(dbPath=self.factorDBName,
                                                                    tableName=self.factorTBName,
                                                                    ddbSession=self.session)
+        self.callBackFunc: Callable = callBackFunc
 
     def init(self, factorDict: Dict[str, str], labelDict: Dict[str, str]):
         self.factorDBName = factorDict["dbName"]
@@ -43,6 +44,8 @@ class DataSource(LabelSource):
         self.labelSymbolCol = labelDict["symbolCol"]
         self.labelIndicatorCol = labelDict["indicatorCol"]
         self.labelValueCol = labelDict["valueCol"]
+
+    def getFactorList(self, currentDate: pd.Timestamp):
 
     def append(self, data: pd.DataFrame) -> None:
         """
