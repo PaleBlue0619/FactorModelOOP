@@ -1,6 +1,10 @@
 { // 初始化模型参数,并对所选参数进行网格搜索
     // 树模型
-    "gbdt": {
+    "gbdt_v0": {
+      "modelName": "gbdt",
+      "modelObj": "src.entity.model.DefaultModel.GradientBoosting",
+      "modelPath": "D:/DolphinDB/Project/FactorModel_v1/model/GBDT",
+      "cv": 5,
       "default_params": {
           "criterion": "friedman_mse",
           "random_state": 42
@@ -14,7 +18,11 @@
   },
 
     // 集成模型 (Bagging)
-    "randomforest": {     // 随机森林
+    "randomforest_v0": {     // 随机森林
+      "modelName": "randomforest",
+      "modelObj": "src.entity.model.DefaultModel.RandomForest",
+      "modelPath": "D:/DolphinDB/Project/FactorModel_v1/model/RandomForest",
+      "cv": 5,
       "default_params": {
           "criterion": "squared_error",
           "random_state": 42,
@@ -28,7 +36,11 @@
     },
 
     // 集成模型 (Boosting)
-    "adaboost": {
+    "adaboost_v0": {
+      "modelName": "adaboost",
+      "modelObj": "src.entity.model.DefaultModel.AdaBoost",
+      "modelPath": "D:/DolphinDB/Project/FactorModel_v1/model/Adaboost",
+      "cv": 5,
       "default_params": {
           "loss": "linear",
           "random_state": 42
@@ -39,22 +51,11 @@
       }
     },
 
-    "catboost": {  // catBoost
-      "default_params": {
-          "loss_function":"RMSE",
-          "n_estimators": 100,
-          "early_stopping_rounds": 20,
-          "random_state": 42,
-          "verbose": 0, // 静默模型训练过程
-      },
-      "grid_params": {
-          "learning_rate": [0.01,0.05,0.1],
-          "max_depth": [null,5,10],
-          "l2_leaf_reg": [1,3,5],
-          "random_strength": [0,0.1,1]
-      }
-    },
-    "lightgbm": { // lightGBM
+    "lightgbm_v0": { // lightGBM
+      "modelName": "lightgbm",
+      "modelObj": "src.entity.model.DefaultModel.LightGBM",
+      "modelPath": "D:/DolphinDB/Project/FactorModel_v1/model/LightGBM",
+      "cv": 5,
       "default_params": {
           "boosting_type": "gbdt",
           "eval_metric":"rmse",     //    # 指定评估指标"
@@ -71,7 +72,11 @@
           "reg_alpha": [0.01,0.1,1.0]     // L1正则化系数(由于数据维度较高)
       },
     },
-    "xgboost": {  // XGBoost
+    "xgboost_v0": {  // XGBoost
+      "modelName": "xgboost",
+      "modelObj": "src.entity.model.DefaultModel.XGBoost",
+      "modelPath": "D:/DolphinDB/Project/FactorModel_v1/model/XGBoost",
+      "cv": 5,
       "default_params": {
           "booster": "gbtree",  // 表现远远胜过linear
           "random_state": 42,
@@ -90,7 +95,11 @@
     },
 
     // 神经网络模型(sklearn实现)
-    "mlp": {
+    "mlp_v0": {
+      "modelName": "mlp",
+      "modelObj": "src.entity.model.DefaultModel.MLP",
+      "modelPath": "D:/DolphinDB/Project/FactorModel_v1/model/MLP",
+      "cv": 5,
        "default_params": {
           "hidden_layer_sizes": [30,],  // 默认单隐层30个神经元
           "activation": "relu",          // 最常用的激活函数
@@ -109,24 +118,15 @@
     },
 
     // DNN(skorch实现)
-    "dnn": {
-        "default_params": {  //  去template.torch_model中修改
+    "dnn_v0": {
+      "modelName": "dnn",
+      "modelObj": "src.entity.model.DefaultModel.DNN",
+      "modelPath": "D:/DolphinDB/Project/FactorModel_v1/model/DNN",
+      "cv": 5,
+      "default_params": {  //  去template.torch_model中修改
           "verbose": -1,
-        },
-        "grid_params": {
-          'module__hidden_dim': [16, 32],  // 隐藏层维度
-          'module__dropout': [0.1, 0.2, 0.3],  // Dropout 概率
-          'lr': [0.01, 0.001],  //学习率
-          'max_epochs': [50, 100]  //最大训练轮数
-        }
-    },
-
-    // RESNET(skorch实现)
-    "resnet": {
-        "default_params": {  //  去template.torch_model中修改
-          "verbose": -1,
-        },
-        "grid_params": {
+      },
+      "grid_params": {
           'module__hidden_dim': [16, 32],  // 隐藏层维度
           'module__dropout': [0.1, 0.2, 0.3],  // Dropout 概率
           'lr': [0.01, 0.001],  //学习率
