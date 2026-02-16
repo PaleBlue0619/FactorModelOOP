@@ -40,15 +40,35 @@ class FactorModel:
         self.timeDict = self.selector.timeDict.copy()
 
         for currentDate in tqdm.tqdm(self.timeDict.keys(), desc="training..."):
+            # 根据时间规则滚动向前
+            predStartDate, predEndDate = self.selector.getNextPeriod()
             currentStartDate, currentEndDate = self.selector.forward()
+            # 触发回调函数 -> 获取当前日期下的因子列表
             factorList = self.dataSource.getFactorList(labelName=labelName, currentDate=currentDate)
-            data = self.dataSource.getData(
+            # 获取训练数据 + 预测数据
+            trainData = self.dataSource.getData(
                 startDate=currentStartDate,
                 endDate=currentEndDate,
                 symbolList=None,
                 labelList=[self.labelName],
                 factorList=factorList)
-            print(data)
+            testData = self.dataSource.getFactor(
+                startDate=predStartDate,
+                endDate=predEndDate,
+                symbolList=None,
+                factorList=factorList
+            )
+            # 训练模型
+
+
+            # 保存模型
+
+            # 进行预测
+
+            # 合成因子写入数据库
+            print("currentDate", currentDate, "currentStartDate", currentStartDate, "currentEndDate", currentEndDate)
+            print("train", trainData["tradeDate"].min(), trainData["tradeDate"].max())
+            print("test", testData["tradeDate"].min(), testData["tradeDate"].max())
 
 if __name__ == "__main__":
     with open(r".\cons\time.json5", "r", encoding="utf-8") as f:
@@ -60,5 +80,9 @@ if __name__ == "__main__":
     factorDict = sourceDict["factor"]
     labelDict = sourceDict["label"]
     session = ddb.session("localhost", 8848, "admin", "123456")
-    F = FactorModel(session, factorDict=factorDict, labelDict=labelDict, timeDict=timeDict, callBackFunc=callBack)
-    F.run(startDate="2020.01.01", labelName="ret5D")
+    F = FactorModel(session,
+                    factorDict=factorDict,
+                    labelDict=labelDict,
+                    timeDict=timeDict,
+                    callBackFunc=callBack)
+    F.run(startDate="2021.01.01", labelName="ret10D")

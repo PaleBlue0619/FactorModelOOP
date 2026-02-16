@@ -32,10 +32,32 @@ class Selector:
             timeDict[pd.Timestamp(key)] = [pd.Timestamp(value[0]), pd.Timestamp(value[1])]
         self.timeDict = timeDict
 
-    def forward(self) -> [pd.Timestamp, pd.Timestamp]:
+    def forward(self) -> List[pd.Timestamp]:
+        """
+        时间戳向前滚动
+        :return: 返回当前时间戳范围
+        """
         if self.currentIdx >= len(self.timeDict):
             return None # 说明已经训练到头了
         self.currentDate = list(self.timeDict.keys())[self.currentIdx]
-        self.currentIdx += 1
+        self.currentIdx += 1    # 下一个需要取到的时间戳
         return self.timeDict[self.currentDate]
+
+    def getNextPeriod(self) -> List[pd.Timestamp]:
+        """
+        获取下一个时间戳范围
+        :return: 返回下一个时间戳范围
+        """
+        if self.currentIdx <= len(self.timeDict.keys())-2:
+            leftDate = list(self.timeDict.keys())[self.currentIdx]
+            rightDate = list(self.timeDict.keys())[self.currentIdx + 1]
+            return [leftDate + pd.Timedelta(1, "D"), rightDate]
+        elif self.currentIdx == len(self.timeDict.keys())-1:
+            leftDate = list(self.timeDict.keys())[self.currentIdx]
+            rightDate = pd.Timestamp.now().date()
+            return [leftDate + pd.Timedelta(1, "D"), rightDate]
+        else:
+            return [pd.NaT, pd.NaT]
+
+
 
