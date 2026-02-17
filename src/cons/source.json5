@@ -5,7 +5,8 @@
     "dateCol": "tradeDate",
     "symbolCol": "symbol",
     "indicatorCol": "factor",
-    "valueCol": "value"
+    "valueCol": "value",
+    "condition": "symbol not in ['SCTAS.INE','ZC.ZCE']"
   },
   "label": {
     "dbName": "dfs://dayLabel",
@@ -14,6 +15,7 @@
     "labelDateCol": "minDate",
     "symbolCol": "cont",
     "indicatorCol": "label",
-    "valueCol": "value"
+    "valueCol": "value",
+    "condition": "cont not in ['SCTAS.INE','ZC.ZCE']"
   }
 }

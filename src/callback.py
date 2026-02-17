@@ -2,11 +2,14 @@ import pandas as pd
 from src.entity.source.DataSource import DataSource
 from typing import List
 
-def callBack(self: DataSource, labelName: str, currentDate: pd.Timestamp) -> List[str]:
+def selectFactor(self: DataSource, labelName: str, currentDate: pd.Timestamp) -> List[str]:
     """
     回调的方式获取每期选取的因子 -> 这里的currentDate为收盘后的时间!!!
     """
+    deleteFactorList = ['gbdt_v0', "randomforest_v0", "adaboost_v0",
+                        'lightgbm_v0', "xgboost_v0", 'mlp_v0', 'dnn_v0']    # 防止取到自己
     currentDate = pd.Timestamp(currentDate).strftime("%Y.%m.%d")
+    self.session.upload({"deleteFactorList": deleteFactorList})
     factorList: List[str] = self.session.run(f"""
         /* 配置参数 */
         callBackPeriod = 20;
@@ -34,7 +37,8 @@ def callBack(self: DataSource, labelName: str, currentDate: pd.Timestamp) -> Lis
                           {self.factorIndicatorCol} as factor,
                           {self.factorValueCol} as factorVal
                   from loadTable(factorDB, factorTB)
-                  where {self.factorDateCol} between startDate and endDate
+                  where {self.factorDateCol} between startDate and endDate 
+                    and factor not in deleteFactorList;
         factorDF = select * from lj(factorDF, labelDF, ["{self.dataSymbolCol}", "{self.dataDateCol}"]) where not isNull(labelVal);
         undef(`labelDF);
         

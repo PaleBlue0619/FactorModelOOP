@@ -1,13 +1,15 @@
 import os, json, json5
 import tqdm
+import numpy as np
 import pandas as pd
 import dolphindb as ddb
-from src.callback import callBack
+from src.callback import selectFactor
 from src.entity.model.Model import Model
 from src.entity.source.DataSource import DataSource
 from src.entity.selector.Selector import Selector
 from typing import Dict, List, Callable
 from src.utils.utils import getClassFromString
+np.random.seed(42)
 
 class FactorModel(Model):
     def __init__(self, session: ddb.session,
@@ -15,27 +17,29 @@ class FactorModel(Model):
                  factorDict:  Dict[str, str],
                  labelDict: Dict[str, str],
                  timeDict: Dict[str, List[str]],
-                 callBackFunc: Callable):
+                 factorSelectFunc: Callable):
         super().__init__()
         self.session = session
         self.modelDict = modelDict
-        self.modelClassDict = {getClassFromString(Dict["modelObj"]) for _, Dict in self.modelDict.items()}
+        self.modelNameDict = {name: Dict["modelName"] for name, Dict in self.modelDict.items()}
+        self.modelClassDict = {self.modelNameDict[name]: getClassFromString(Dict["modelObj"])
+                               for name, Dict in self.modelDict.items()}
         self.modelObjDict = {}
         self.factorDict = factorDict
         self.labelDict = labelDict
-        self.dataSource = DataSource(session, callBackFunc=callBackFunc)
+        self.dataSource = DataSource(session, factorSelectFunc=factorSelectFunc)
         self.dataSource.init(factorDict, labelDict)
         self.selector = Selector()
         self.selector.setTimeRule(timeDict)
         self.labelName: str = ""
         self.timeDict: Dict[pd.Timestamp, List[pd.Timestamp]] = {}
 
-    def run(self, startDate: pd.Timestamp, labelName: str, nearMatching: bool = False):
+    def run(self, startDate: pd.Timestamp, labelName: str, namePrefix: str = "test_"):
         """
         训练PipeLine
         :param startDate: 开始训练日期
         :param labelName: 标签名称
-        :param nearMatching:
+        :param namePrefix: 最终保存的因子名称 = namePrefix+modelName
         :return:
         """
         startDate = pd.Timestamp(startDate)
@@ -48,6 +52,7 @@ class FactorModel(Model):
 
         for currentDate in tqdm.tqdm(self.timeDict.keys(), desc="training..."):
             # 1.根据时间规则滚动向前 -> 获取数据
+            fileStrName = pd.Timestamp(currentDate).strftime("%Y%m%d")
             predStartDate, predEndDate = self.selector.getNextPeriod()
             currentStartDate, currentEndDate = self.selector.forward()
             # 触发回调函数 -> 获取当前日期下的因子列表
@@ -60,21 +65,44 @@ class FactorModel(Model):
             trainX = trainData[filterFactorList]
             predData = self.dataSource.getFactor(startDate=predStartDate, endDate=predEndDate,
                                                  symbolList=None, factorList=filterFactorList)
-            predX = testData[filterFactorList]
+            if predData.empty:
+                continue
+            predX = predData[filterFactorList]
 
-            # # 训练模型
-            for name, modelClass in self.modelClassDict.items():    # 遍历当前的所有模型配置
+            # 遍历当前的所有模型配置(dnn_v0, dnn_v1,...)
+            for name in self.modelDict.keys():
+                modelName = self.modelNameDict[name]    # dnn
+                modelClass = self.modelClassDict[modelName]
+                # 构造模型 + 初始化模型
                 model = modelClass()
-                model.build()
+                model.fromDict(Dict=self.modelDict[name])
+                if modelName in ["dnn","resnet"]:
+                    model.build(inputDim=len(filterFactorList),
+                                defaultParams=self.modelDict[name]["default_params"])
+                else:
+                    model.build(defaultParams=self.modelDict[name]["default_params"])
+                self.modelObjDict[name] = model
 
-            # 保存模型
+                # 训练模型
+                model.train(trainX, trainY)
 
-            # 进行预测
+                # 选择模型
+                if modelName in ["dnn","resnet"]:
+                    model.select(X=trainX, y=trainY, inputDim=len(filterFactorList))
+                else:
+                    model.select(X=trainX, y=trainY, inputDim=None)
 
-            # 合成因子写入数据库
-            print("currentDate", currentDate, "currentStartDate", currentStartDate, "currentEndDate", currentEndDate)
-            print("train", trainData["tradeDate"].min(), trainData["tradeDate"].max())
-            print("test", testData["tradeDate"].min(), testData["tradeDate"].max())
+                # 保存模型
+                model.save(fileName=fileStrName, targetFormat="bin")
+
+                # 进行预测
+                comp = model.pred(predX)
+
+                # 合成因子写入数据库
+                factorName: str = namePrefix+name
+                self.dataSource.append(index=predData[[self.dataSource.dataSymbolCol, self.dataSource.dataDateCol]],
+                                       value=comp, factorName=factorName)
+            self.modelObjDict = {}
 
 if __name__ == "__main__":
     with open(r".\cons\time.json5", "r", encoding="utf-8") as f:
@@ -91,6 +119,5 @@ if __name__ == "__main__":
                     factorDict=factorDict,
                     labelDict=labelDict,
                     timeDict=timeDict,
-                    callBackFunc=callBack)
-    print(F.modelClassDict)
-    # F.run(startDate="2021.01.01", labelName="ret10D")
+                    factorSelectFunc=selectFactor)
+    F.run(startDate="2021.01.01", labelName="ret10D", namePrefix="")

@@ -3,13 +3,12 @@ import lightgbm
 import xgboost
 import torch
 import torch.nn as nn
-import torch.nn.functional as func
 from skorch import NeuralNetRegressor
 from src.entity.model.Model import Model
 
 class DefaultDNN(nn.Module):
-    def __init__(self, input_dim, hidden_dim=64, output_dim=1, dropout=0.2):
-        super(DNN, self).__init__()
+    def __init__(self, input_dim, hidden_dim=64, output_dim=1, dropout=0.2, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.criterion = nn.MSELoss()  # 定义损失函数
         self.fc1 = nn.Linear(input_dim, hidden_dim)
         self.bn1 = nn.BatchNorm1d(hidden_dim)  # 添加 BatchNorm
@@ -20,9 +19,9 @@ class DefaultDNN(nn.Module):
         # self.shortcut = nn.Linear(input_dim, output_dim)  # 残差连接
 
     def forward(self, X):
-        out = F.relu(self.fc1(X))
+        out = nn.functional.relu(self.fc1(X))
         out = self.dropout(out)
-        out = F.relu(self.fc2(out))
+        out = nn.functional.relu(self.fc2(out))
         out = self.dropout(out)
         out = self.fc3(out)
         # shortcut = self.shortcut(X)             # 残差连接
@@ -59,7 +58,7 @@ class CustomDNN(DefaultDNN):
         return loss.item()
 
 # Get Method
-# TODO: 可以再写一些str -> param的映射, 实现json cfg构造模型的自动化
+# TODO: 可以再写一些if-condition实现str -> param的映射, 实现json cfg构造模型的自动化
 def get_DNN(inputDim: int, **kwargs):
     model = CustomDNN(inputDim)
     DNN_net = NeuralNetRegressor(

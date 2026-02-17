@@ -1,6 +1,7 @@
 import sklearn
 from sklearn.ensemble import AdaBoostRegressor, RandomForestRegressor, GradientBoostingRegressor
 from sklearn.neural_network import MLPRegressor
+from sklearn.model_selection._search import GridSearchCV
 import lightgbm
 from lightgbm import LGBMRegressor
 import xgboost
@@ -18,6 +19,11 @@ class AdaBoost(Model):
     def build(self, defaultParams: Dict[str, any]):
         """构造模型"""
         self.modelObj = self.constructor(**defaultParams)
+        self.gridObj = GridSearchCV(estimator=self.modelObj,
+                                    param_grid=self.gridParams,
+                                    cv=self.cv,
+                                    error_score="raise",
+                                    n_jobs=-1)
 
 class RandomForest(Model):
     def __init__(self):
@@ -28,6 +34,11 @@ class RandomForest(Model):
     def build(self, defaultParams: Dict[str, any]):
         """构造模型"""
         self.modelObj = self.constructor(**defaultParams)
+        self.gridObj = GridSearchCV(estimator=self.modelObj,
+                                    param_grid=self.gridParams,
+                                    cv=self.cv,
+                                    error_score="raise",
+                                    n_jobs=-1)
 
 class GradientBoosting(Model):
     def __init__(self):
@@ -38,6 +49,11 @@ class GradientBoosting(Model):
     def build(self, defaultParams: Dict[str, any]):
         """构造模型"""
         self.modelObj = self.constructor(**defaultParams)
+        self.gridObj = GridSearchCV(estimator=self.modelObj,
+                                    param_grid=self.gridParams,
+                                    cv=self.cv,
+                                    error_score="raise",
+                                    n_jobs=-1)
 
 class MLP(Model):
     def __init__(self):
@@ -48,6 +64,11 @@ class MLP(Model):
     def build(self, defaultParams: Dict[str, any]):
         """构造模型"""
         self.modelObj = self.constructor(**defaultParams)
+        self.gridObj = GridSearchCV(estimator=self.modelObj,
+                                    param_grid=self.gridParams,
+                                    cv=self.cv,
+                                    error_score="raise",
+                                    n_jobs=-1)
 
 class LightGBM(Model):
     def __init__(self):
@@ -58,6 +79,11 @@ class LightGBM(Model):
     def build(self, defaultParams: Dict[str, any]):
         """构造模型"""
         self.modelObj = self.constructor(**defaultParams)
+        self.gridObj = GridSearchCV(estimator=self.modelObj,
+                                    param_grid=self.gridParams,
+                                    cv=self.cv,
+                                    error_score="raise",
+                                    n_jobs=-1)
 
 class XGBoost(Model):
     def __init__(self):
@@ -68,6 +94,11 @@ class XGBoost(Model):
     def build(self, defaultParams: Dict[str, any]):
         """构造模型"""
         self.modelObj = self.constructor(**defaultParams)
+        self.gridObj = GridSearchCV(estimator=self.modelObj,
+                                    param_grid=self.gridParams,
+                                    cv=self.cv,
+                                    error_score="raise",
+                                    n_jobs=-1)
 
 class DNN(Model):
     def __init__(self):
@@ -75,7 +106,12 @@ class DNN(Model):
         self.modelName: str = "dnn"
         self.constructor: Callable = get_DNN
 
-    def build(self, defaultParams: Dict[str, any]):
+    def build(self, inputDim: int, defaultParams: Dict[str, any]):
         """构造模型"""
-        self.modelObj = self.constructor(**defaultParams)
+        self.modelObj = self.constructor(inputDim, **defaultParams)
+        self.gridObj = GridSearchCV(estimator=self.modelObj,
+                                    param_grid=self.gridParams,
+                                    cv=self.cv,
+                                    error_score="raise",
+                                    n_jobs=-1)
 

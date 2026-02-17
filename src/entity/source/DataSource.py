@@ -6,9 +6,9 @@ from src.entity.source.LabelSource import LabelSource
 from typing import List, Dict, Callable
 
 class DataSource(LabelSource):
-    def __init__(self, session: ddb.session, callBackFunc: Callable):   # 回调函数 -> 入参: currentDate -> 自动返回所需的因子
+    def __init__(self, session: ddb.session, factorSelectFunc: Callable):   # 回调函数 -> 入参: currentDate -> 自动返回所需的因子
         super().__init__(session)
-        self.callBackFunc: Callable = callBackFunc
+        self.factorSelectFunc: Callable = factorSelectFunc
 
     def getFactorList(self, labelName: str, currentDate: pd.Timestamp) -> List[str]:
         """
@@ -17,21 +17,28 @@ class DataSource(LabelSource):
         :param currentDate: 当前日期
         :return:
         """
-        return self.callBackFunc(self, labelName, currentDate)
+        return self.factorSelectFunc(self, labelName, currentDate)
 
-    def append(self, data: pd.DataFrame) -> None:
+    def append(self, factorName: str, index: pd.DataFrame, value: List[float]) -> None:
         """
         向因子库写入因子
+        最终格式: symbol tradeDate factor value
+        :param factorName: 因子名称
+        :param index: symbol tradeDate
+        :param data: value
         :return:
         """
-        self.factorAppender.append(data)
+        index = index.copy()
+        index["factor"] = factorName
+        index["value"] = value
+        self.factorAppender.append(index)
 
     def getData(self, startDate: pd.Timestamp = None,
                 endDate: pd.Timestamp = None,
                 symbolList: List[str] = None,
                 labelList: List[str] = None,
-                factorList: List[str] = None,
-               ) -> pd.DataFrame:
+                factorList: List[str] = None
+                ) -> pd.DataFrame:
         """获取完整的数据集 -> startDate & endDate
         通过LabelSource进行获取
         """
@@ -54,53 +61,53 @@ class DataSource(LabelSource):
             /* 标签内存表 */
             if (size(symbolList)==0 and size(labelList)==0){{
                 labelDF = select value from loadTable("{self.labelDBName}","{self.labelTBName}") 
-                where {self.labelDateCol} between startDate and endDate
+                where {self.labelDateCol} between startDate and endDate and ({self.labelCondition})
                 pivot by {self.labelSymbolCol} as {self.dataSymbolCol}, {self.labelDateCol} as {self.dataDateCol}, {self.labelIndicatorCol}
             }}
             else if(size(symbolList)>0 and size(labelList)==0){{
                 labelDF = select value from loadTable("{self.labelDBName}","{self.labelTBName}") 
-                where ({self.labelDateCol} between startDate and endDate) and {self.labelSymbolCol} in symbolList
+                where ({self.labelDateCol} between startDate and endDate) and {self.labelSymbolCol} in symbolList and ({self.labelCondition})
                 pivot by {self.labelSymbolCol} as {self.dataSymbolCol}, {self.labelDateCol} as {self.dataDateCol}, {self.labelIndicatorCol}
             }}
             else if(size(symbolList)==0 and size(labelList)>0){{
                 labelDF = select value from loadTable("{self.labelDBName}","{self.labelTBName}") 
-                where ({self.labelDateCol} between startDate and endDate) and {self.labelIndicatorCol} in labelList
+                where ({self.labelDateCol} between startDate and endDate) and {self.labelIndicatorCol} in labelList and ({self.labelCondition})
                 pivot by {self.labelSymbolCol} as {self.dataSymbolCol}, {self.labelDateCol} as {self.dataDateCol}, {self.labelIndicatorCol}
             }}
             else{{
                 labelDF = select value from loadTable("{self.labelDBName}","{self.labelTBName}") 
-                where ({self.labelDateCol} between startDate and endDate) and ({self.labelSymbolCol} in symbolList) and ({self.labelIndicatorCol} in labelList) 
+                where ({self.labelDateCol} between startDate and endDate) and ({self.labelSymbolCol} in symbolList) and ({self.labelIndicatorCol} in labelList) and ({self.labelCondition}) 
                 pivot by {self.labelSymbolCol} as {self.dataSymbolCol}, {self.labelDateCol} as {self.dataDateCol}, {self.labelIndicatorCol}
             }}
-            
+
             /* 因子内存表 */
             if (size(symbolList)==0 and size(factorList)==0){{
                 factorDF = select value from loadTable("{self.factorDBName}","{self.factorTBName}") 
-                where {self.factorDateCol} between startDate and endDate
+                where {self.factorDateCol} between startDate and endDate and ({self.factorCondition})
                 pivot by {self.factorSymbolCol} as {self.dataSymbolCol}, {self.factorDateCol} as {self.dataDateCol}, {self.factorIndicatorCol}
             }}
             else if(size(symbolList)>0 and size(factorList)==0){{
                 factorDF = select value from loadTable("{self.factorDBName}","{self.factorTBName}") 
-                where ({self.factorDateCol} between startDate and endDate) and {self.factorSymbolCol} in symbolList
+                where ({self.factorDateCol} between startDate and endDate) and {self.factorSymbolCol} in symbolList and ({self.factorCondition})
                 pivot by {self.factorSymbolCol} as {self.dataSymbolCol}, {self.factorDateCol} as {self.dataDateCol}, {self.factorIndicatorCol}
             }}
             else if(size(symbolList)==0 and size(factorList)>0){{
                 factorDF = select value from loadTable("{self.factorDBName}","{self.factorTBName}") 
-                where ({self.factorDateCol} between startDate and endDate) and {self.factorIndicatorCol} in factorList
+                where ({self.factorDateCol} between startDate and endDate) and {self.factorIndicatorCol} in factorList and ({self.factorCondition})
                 pivot by {self.factorSymbolCol} as {self.dataSymbolCol}, {self.factorDateCol} as {self.dataDateCol}, {self.factorIndicatorCol}
             }}
             else{{
                 factorDF = select value from loadTable("{self.factorDBName}","{self.factorTBName}") 
-                where ({self.factorDateCol} between startDate and endDate) and ({self.factorSymbolCol} in symbolList) and ({self.factorIndicatorCol} in factorList) 
+                where ({self.factorDateCol} between startDate and endDate) and ({self.factorSymbolCol} in symbolList) and ({self.factorIndicatorCol} in factorList) and ({self.factorCondition})
                 pivot by {self.factorSymbolCol} as {self.dataSymbolCol}, {self.factorDateCol} as {self.dataDateCol}, {self.factorIndicatorCol}
             }}
-            
+
             /* 进行合并 */
             matchingCols = ["{self.dataSymbolCol}", "{self.dataDateCol}"]
             labelDF = select * from lj(labelDF, factorDF, matchingCols);
-            
+
             /* 清理内存并返回结果 */
             undef(`factorDF)
             labelDF;
-        """)
+        """.replace("and ()", ""))
         return data
