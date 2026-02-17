@@ -55,11 +55,16 @@ class FactorModel(Model):
             fileStrName = pd.Timestamp(currentDate).strftime("%Y%m%d")
             predStartDate, predEndDate = self.selector.getNextPeriod()
             currentStartDate, currentEndDate = self.selector.forward()
+            print("currentDate", currentDate)
+            print("currentStartDate", currentStartDate, "currentEndDate", currentEndDate)
             # 触发回调函数 -> 获取当前日期下的因子列表
             factorList = self.dataSource.getFactorList(labelName=labelName, currentDate=currentDate)
             # 获取训练数据 + 预测数据
             trainData = self.dataSource.getData(startDate=currentStartDate, endDate=currentEndDate,
                                                 symbolList=None, labelList=[self.labelName], factorList=factorList)
+            trainData = trainData[~trainData[self.labelName].isna()].reset_index(drop=True)
+            if trainData.empty:
+                continue
             trainY = trainData[self.labelName]
             filterFactorList = [i for i in factorList if i in trainData.columns]
             trainX = trainData[filterFactorList]
@@ -67,6 +72,8 @@ class FactorModel(Model):
                                                  symbolList=None, factorList=filterFactorList)
             if predData.empty:
                 continue
+            print("predStartDate", predData[self.dataSource.dataDateCol].min(),
+                  "predEndDate", predData[self.dataSource.dataDateCol].max())
             predX = predData[filterFactorList]
 
             # 遍历当前的所有模型配置(dnn_v0, dnn_v1,...)
@@ -120,4 +127,4 @@ if __name__ == "__main__":
                     labelDict=labelDict,
                     timeDict=timeDict,
                     factorSelectFunc=selectFactor)
-    F.run(startDate="2021.01.01", labelName="ret10D", namePrefix="")
+    F.run(startDate="2023.09.14", labelName="ret10D", namePrefix="")
