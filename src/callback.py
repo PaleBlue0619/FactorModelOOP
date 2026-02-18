@@ -45,7 +45,7 @@ def selectFactor(self: DataSource, labelName: str, currentDate: pd.Timestamp) ->
         /* 计算历史IC */
         icDF = select corr(factorVal, labelVal) as IC,spearmanr(factorVal, labelVal) as rankIC 
                 from factorDF group by {self.dataDateCol}, factor;
-        icStats = select avg(ic) as icMean, std(ic) as icStd from icDF group by factor;
+        icStats = select avg(rankIC) as icMean, std(rankIC) as icStd from icDF group by factor;
         
         /* 筛选因子 */
         exec factor from icStats where abs(icMean)>quantile(abs(icMean), icThreshold);
