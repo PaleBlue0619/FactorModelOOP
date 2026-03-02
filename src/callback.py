@@ -52,16 +52,18 @@ def selectFactor(self: DataSource, labelName: str, currentDate: pd.Timestamp) ->
     """)
     return factorList
 
-def combineFactor(self: DataSource, labelName: str, currentDate: pd.Timestamp, factorList: List[str]) -> pd.DataFrame:
+def combineFactor(self: DataSource, labelName: str, currentDate: pd.Timestamp, factorList: List[str], factorNames: List[str]) -> pd.DataFrame:
     """
     :param self: 数据源
     :param labelName: 所选标签
     :param currentDate: 当前日期
-    :param factorList: 因子列表
+    :param factorList: 输入因子列表
+    :param factorNames: 输出合成因子列表
     :return:
     """
     currentDate = pd.Timestamp(currentDate).strftime("%Y.%m.%d")
     self.session.upload({"factorList": factorList})
+    self.session.upload({"factorNames": factorNames})
     # # 合成因子数据 -> 等权合成
     # combineData = self.session,run(f"""
     #     callBackPeriod = 20;
@@ -84,7 +86,7 @@ def combineFactor(self: DataSource, labelName: str, currentDate: pd.Timestamp, f
         labelName = "{labelName}"
         endDate = {currentDate};
         startDate = temporalAdd(endDate, -1*callBackPeriod, "CFFEX");
-        factorName = string(factorList[0]);
+        factorName = string(factorNames[0]);
         factorDF = select {self.factorSymbolCol} as {self.dataSymbolCol}, 
                           {self.factorDateCol} as {self.dataDateCol},
                           {self.factorIndicatorCol} as factor, 

@@ -23,15 +23,16 @@ class DataSource(LabelSource):
         """
         return self.factorSelectFunc(self, labelName, currentDate)
 
-    def combineFactor(self, labelName: str, currentDate: pd.Timestamp, factorList: List[str]) -> pd.DataFrame:
+    def combineFactor(self, labelName: str, currentDate: pd.Timestamp, factorList: List[str], factorNames: List[str]) -> pd.DataFrame:
         """
         合成因子
         :param labelName: 所选标签
         :param currentDate: 当前日期
         :param factorList: 所选因子列表
+        :param factorNames: 输出因子列表
         :return:
         """
-        return self.factorCombineFunc(self, labelName, currentDate, factorList)
+        return self.factorCombineFunc(self, labelName, currentDate, factorList, factorNames)
 
     def append(self, factorName: str, index: pd.DataFrame, value: List[float]) -> None:
         """

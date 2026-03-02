@@ -51,7 +51,8 @@ class FactorLightModel:
             # 触发回调函数 -> 获取当前日期下的因子列表
             factorList = self.dataSource.getFactorList(labelName=labelName,
                                                        currentDate=currentDate)
-            combineDF = self.dataSource.combineFactor(labelName=labelName, currentDate=currentDate, factorList=factorNames)
+            combineDF = self.dataSource.combineFactor(labelName=labelName, currentDate=currentDate, factorList=factorList,
+                                                      factorNames=factorNames)
             self.dataSource.appendDF(data=combineDF)
 
 if __name__ == "__main__":
