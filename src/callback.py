@@ -12,8 +12,8 @@ def selectFactor(self: DataSource, labelName: str, currentDate: pd.Timestamp) ->
     self.session.upload({"deleteFactorList": deleteFactorList})
     factorList: List[str] = self.session.run(f"""
         /* 配置参数 */
-        callBackPeriod = 20;
-        icThreshold = 0.5;
+        callBackPeriod = 40;
+        icThreshold = 0.9;
         currentDate = {currentDate};
         labelName = "{labelName}";
         factorDB = "{self.factorDBName}";
@@ -51,3 +51,58 @@ def selectFactor(self: DataSource, labelName: str, currentDate: pd.Timestamp) ->
         exec factor from icStats where abs(icMean)>quantile(abs(icMean), icThreshold);
     """)
     return factorList
+
+def combineFactor(self: DataSource, labelName: str, currentDate: pd.Timestamp, factorList: List[str]) -> pd.DataFrame:
+    """
+    :param self: 数据源
+    :param labelName: 所选标签
+    :param currentDate: 当前日期
+    :param factorList: 因子列表
+    :return:
+    """
+    currentDate = pd.Timestamp(currentDate).strftime("%Y.%m.%d")
+    self.session.upload({"factorList": factorList})
+    # # 合成因子数据 -> 等权合成
+    # combineData = self.session,run(f"""
+    #     callBackPeriod = 20;
+    #     endDate = {currentDate};
+    #     startDate = temporalAdd(endDate, -1*callBackPeriod, "CFFEX");
+    #     factorDF = select value from loadTable("{self.factorDBName}","{self.factorTBName}")
+    #                 where ({self.factorDateCol} between startDate and endDate) and {self.factorIndicatorCol} in factorList;
+    #                 pivot by {self.factorSymbolCol}, {self.factorDateCol}, {self.factorIndicatorCol};
+    #     filterList = columnNames(factorDF)[2:]
+    #     /* 等权合成 */
+    #     factorName = string(factorList[0]);
+    #     <select {self.factorSymbolCol}, {self.factorDateCol}, factorName as {self.factorIndicatorCol},
+    #         rowAvg(_$$filterList) as factorName>.eval(); // 元编程
+    # """)
+
+    # 合成因子数据 -> 根据IC加权合成
+    # 标的列 日期列 因子值 标签值 IC值
+    combineData = self.session.run(f"""
+        callBackPeriod = 20;
+        labelName = "{labelName}"
+        endDate = {currentDate};
+        startDate = temporalAdd(endDate, -1*callBackPeriod, "CFFEX");
+        factorName = string(factorList[0]);
+        factorDF = select {self.factorSymbolCol} as {self.dataSymbolCol}, 
+                          {self.factorDateCol} as {self.dataDateCol},
+                          {self.factorIndicatorCol} as factor, 
+                          {self.factorValueCol} as factorVal 
+                    from loadTable("{self.factorDBName}", "{self.factorTBName}")
+                    where ({self.factorDateCol} between startDate and endDate) and {self.factorIndicatorCol} in factorList;
+        labelDF = select {self.labelSymbolCol} as {self.dataSymbolCol},
+                        {self.labelDateCol} as {self.dataDateCol},
+                        // {self.labelIndicatorCol} as label,
+                        {self.labelValueCol} as labelVal
+                    from loadTable("{self.labelDBName}", "{self.labelTBName}")
+                   where {self.labelIndicatorCol}==labelName and 
+                   startDate<={self.dataDateCol} and {self.labelDateCol}>=startDate and {self.labelDateCol}<endDate
+        factorDF = select * from lj(factorDF, labelDF, ["{self.dataSymbolCol}","{self.dataDateCol}"]) 
+                    where not isNull(labelVal);
+        update factorDF set factorIC = spearmanr(factorVal, labelVal) context by factor, {self.dataDateCol};
+        update factorDF set factorVal = iif(factorIC<0, -factorVal, factorVal);
+        select factorName as {self.factorIndicatorCol}, 
+                factorIC**factorVal as factorName from factorDF group by {self.factorSymbolCol}, {self.dataDateCol};
+    """)
+    return combineData

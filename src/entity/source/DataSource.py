@@ -6,9 +6,13 @@ from src.entity.source.LabelSource import LabelSource
 from typing import List, Dict, Callable
 
 class DataSource(LabelSource):
-    def __init__(self, session: ddb.session, factorSelectFunc: Callable):   # 回调函数 -> 入参: currentDate -> 自动返回所需的因子
+    def __init__(self, session: ddb.session,
+                 factorSelectFunc: Callable, # 回调函数 -> 入参: currentDate -> 自动返回所需的因子
+                 factorCombineFunc: Callable = None # 回调函数: FactorModel_light 专属
+                 ):
         super().__init__(session)
         self.factorSelectFunc: Callable = factorSelectFunc
+        self.factorCombineFunc: Callable = factorCombineFunc
 
     def getFactorList(self, labelName: str, currentDate: pd.Timestamp) -> List[str]:
         """
@@ -18,6 +22,16 @@ class DataSource(LabelSource):
         :return:
         """
         return self.factorSelectFunc(self, labelName, currentDate)
+
+    def combineFactor(self, labelName: str, currentDate: pd.Timestamp, factorList: List[str]) -> pd.DataFrame:
+        """
+        合成因子
+        :param labelName: 所选标签
+        :param currentDate: 当前日期
+        :param factorList: 所选因子列表
+        :return:
+        """
+        return self.factorCombineFunc(self, labelName, currentDate, factorList)
 
     def append(self, factorName: str, index: pd.DataFrame, value: List[float]) -> None:
         """
@@ -32,6 +46,9 @@ class DataSource(LabelSource):
         index["factor"] = factorName
         index["value"] = value
         self.factorAppender.append(index)
+
+    def appendDF(self, data: pd.DataFrame):
+        self.factorAppender.append(data)
 
     def getData(self, startDate: pd.Timestamp = None,
                 endDate: pd.Timestamp = None,
